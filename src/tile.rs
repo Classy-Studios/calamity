@@ -79,6 +79,8 @@ pub enum TileIndex {
     CornerTopRight = 198,
     CornerBottomRight = 171,
     CornerBottomLeft = 172,
+    Nothing = usize::MAX,
+    Player = usize::MAX - 1,
 }
 
 #[derive(Component)]

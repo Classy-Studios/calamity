@@ -32,7 +32,7 @@ fn clamp_to_tilemap(
     else {
         return;
     };
-    let tilemap_size_px = LEVEL_SIZE * TILE_SIZE;
+    let tilemap_size_px = LEVEL_SIZE.truncate() * TILE_SIZE;
 
     if tilemap_size_px.x >= scaled_vp_size.x {
         let (tilemap_left_px, tilemap_right_px) = (-tilemap_size_px.x / 2., tilemap_size_px.x / 2.);

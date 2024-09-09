@@ -106,5 +106,3 @@ pub fn player_plugin(app: &mut App) {
         player_movement.run_if(in_state(GameState::Playing)),
     );
 }
-
-
