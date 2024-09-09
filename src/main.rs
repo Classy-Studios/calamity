@@ -14,7 +14,7 @@ use {
 fn main() {
     App::new()
         .insert_resource({
-            let mut rapier_cfg = RapierConfiguration::new(TILE_SIZE.x);
+            let mut rapier_cfg = RapierConfiguration::new((TILE_SIZE.x + TILE_SIZE.y) / 2.);
             rapier_cfg.timestep_mode = TimestepMode::Fixed {
                 dt: Time::<Fixed>::default().timestep().as_secs_f32(),
                 substeps: 1,
@@ -23,7 +23,9 @@ fn main() {
         })
         .add_plugins((
             DefaultPlugins,
-            RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(TILE_SIZE.x).in_fixed_schedule(),
+            RapierPhysicsPlugin::<NoUserData>::pixels_per_meter((TILE_SIZE.x + TILE_SIZE.y) / 2.)
+                .in_fixed_schedule(),
+            //RapierDebugRenderPlugin::default(),
             InputManagerPlugin::<PlayerAction>::default(),
             game_state::game_state_plugin,
             level::level_plugin,

@@ -42,7 +42,7 @@ fn clamp_to_tilemap(
         );
     }
     if tilemap_size_px.y >= scaled_vp_size.y {
-        let (tilemap_top_px, tilemap_bottom_px) = (-tilemap_size_px.x / 2., tilemap_size_px.x / 2.);
+        let (tilemap_top_px, tilemap_bottom_px) = (tilemap_size_px.y / 2., -tilemap_size_px.y / 2.);
         primary_cam_xform.translation.y = primary_cam_xform.translation.y.clamp(
             tilemap_bottom_px + scaled_vp_size.y / 2.,
             tilemap_top_px - scaled_vp_size.y / 2.,
