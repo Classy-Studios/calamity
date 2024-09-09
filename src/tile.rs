@@ -5,6 +5,9 @@ use {
 };
 
 pub const TILE_SIZE: Vec2 = Vec2::splat(64.);
+const WALL_THICKNESS: f32 = 15.;
+const HALF_WALL_THICKNESS: f32 = WALL_THICKNESS / 2.;
+const HALF_TILE_SIZE: f32 = (TILE_SIZE.x + TILE_SIZE.y) / 2. / 2.;
 
 #[repr(usize)]
 #[derive(Copy, Clone)]
@@ -91,11 +94,13 @@ pub fn spawn_tile(
     tile_pos: Vec2,
     tile_tex_atlas: &Res<TextureAtlasOwner<Tile>>,
     tile_tex_idx: usize,
+    tile_z: f32,
+    tile_idx: TileIndex,
 ) {
     cmds.spawn((
         Tile,
         SpriteBundle {
-            transform: Transform::from_translation(tile_pos.extend(1.)),
+            transform: Transform::from_translation(tile_pos.extend(tile_z)),
             texture: tile_tex_atlas.texture(),
             ..default()
         },
@@ -103,8 +108,110 @@ pub fn spawn_tile(
             layout: tile_tex_atlas.layout(),
             index: tile_tex_idx,
         },
-        //Collider::cuboid(TILE_SIZE.x / 2., TILE_SIZE.y / 2.),
-    ));
+    ))
+    .with_children(|parent| {
+        if matches!(
+            tile_idx,
+            TileIndex::WallLeft
+                | TileIndex::WallBottomLeft
+                | TileIndex::WallTopLeft
+                | TileIndex::UWall
+        ) {
+            parent.spawn((
+                TransformBundle::from_transform(Transform::from_xyz(
+                    -HALF_TILE_SIZE - HALF_WALL_THICKNESS + WALL_THICKNESS,
+                    0.,
+                    0.,
+                )),
+                Collider::cuboid(HALF_WALL_THICKNESS, HALF_TILE_SIZE),
+            ));
+        }
+        if matches!(
+            tile_idx,
+            TileIndex::WallRight
+                | TileIndex::WallBottomRight
+                | TileIndex::WallTopRight
+                | TileIndex::UWall
+        ) {
+            parent.spawn((
+                TransformBundle::from_transform(Transform::from_xyz(
+                    HALF_TILE_SIZE + HALF_WALL_THICKNESS - WALL_THICKNESS,
+                    0.,
+                    0.,
+                )),
+                Collider::cuboid(HALF_WALL_THICKNESS, HALF_TILE_SIZE),
+            ));
+        }
+        if matches!(
+            tile_idx,
+            TileIndex::WallTop | TileIndex::WallTopLeft | TileIndex::WallTopRight
+        ) {
+            parent.spawn((
+                TransformBundle::from_transform(Transform::from_xyz(
+                    0.,
+                    HALF_TILE_SIZE + HALF_WALL_THICKNESS - WALL_THICKNESS,
+                    0.,
+                )),
+                Collider::cuboid(HALF_TILE_SIZE, HALF_WALL_THICKNESS),
+            ));
+        }
+        if matches!(
+            tile_idx,
+            TileIndex::WallBottom
+                | TileIndex::WallBottomLeft
+                | TileIndex::WallBottomRight
+                | TileIndex::UWall
+        ) {
+            parent.spawn((
+                TransformBundle::from_transform(Transform::from_xyz(
+                    0.,
+                    -HALF_TILE_SIZE - HALF_WALL_THICKNESS + WALL_THICKNESS,
+                    0.,
+                )),
+                Collider::cuboid(HALF_TILE_SIZE, HALF_WALL_THICKNESS),
+            ));
+        }
+        if matches!(tile_idx, TileIndex::CornerTopLeft) {
+            parent.spawn((
+                TransformBundle::from_transform(Transform::from_xyz(
+                    -HALF_TILE_SIZE - HALF_WALL_THICKNESS + WALL_THICKNESS,
+                    HALF_TILE_SIZE + HALF_WALL_THICKNESS - WALL_THICKNESS,
+                    0.,
+                )),
+                Collider::cuboid(HALF_WALL_THICKNESS, HALF_WALL_THICKNESS),
+            ));
+        }
+        if matches!(tile_idx, TileIndex::CornerTopRight) {
+            parent.spawn((
+                TransformBundle::from_transform(Transform::from_xyz(
+                    HALF_TILE_SIZE + HALF_WALL_THICKNESS - WALL_THICKNESS,
+                    HALF_TILE_SIZE + HALF_WALL_THICKNESS - WALL_THICKNESS,
+                    0.,
+                )),
+                Collider::cuboid(HALF_WALL_THICKNESS, HALF_WALL_THICKNESS),
+            ));
+        }
+        if matches!(tile_idx, TileIndex::CornerBottomLeft) {
+            parent.spawn((
+                TransformBundle::from_transform(Transform::from_xyz(
+                    -HALF_TILE_SIZE - HALF_WALL_THICKNESS + WALL_THICKNESS,
+                    -HALF_TILE_SIZE - HALF_WALL_THICKNESS + WALL_THICKNESS,
+                    0.,
+                )),
+                Collider::cuboid(HALF_WALL_THICKNESS, HALF_WALL_THICKNESS),
+            ));
+        }
+        if matches!(tile_idx, TileIndex::CornerBottomRight) {
+            parent.spawn((
+                TransformBundle::from_transform(Transform::from_xyz(
+                    HALF_TILE_SIZE + HALF_WALL_THICKNESS - WALL_THICKNESS,
+                    -HALF_TILE_SIZE - HALF_WALL_THICKNESS + WALL_THICKNESS,
+                    0.,
+                )),
+                Collider::cuboid(HALF_WALL_THICKNESS, HALF_WALL_THICKNESS),
+            ));
+        }
+    });
 }
 
 pub fn tile_plugin(app: &mut App) {

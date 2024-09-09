@@ -28,7 +28,7 @@ pub fn spawn_player(
         Player,
         SpriteBundle {
             texture: player_tex_atlas.texture(),
-            transform: Transform::from_translation(player_pos.extend(2.)),
+            transform: Transform::from_translation(player_pos.extend(10.)),
             ..default()
         },
         TextureAtlas {
