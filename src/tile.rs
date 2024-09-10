@@ -5,9 +5,10 @@ use {
 };
 
 pub const TILE_SIZE: Vec2 = Vec2::splat(64.);
+pub const AVG_TILE_DIMENSION: f32 = (TILE_SIZE.x + TILE_SIZE.y) / 2.;
+const HALF_TILE_SIZE: Vec2 = Vec2::new(TILE_SIZE.x / 2., TILE_SIZE.y / 2.);
 const WALL_THICKNESS: f32 = 15.;
 const HALF_WALL_THICKNESS: f32 = WALL_THICKNESS / 2.;
-const HALF_TILE_SIZE: f32 = (TILE_SIZE.x + TILE_SIZE.y) / 2. / 2.;
 
 #[derive(Component)]
 pub struct Tile;
@@ -22,6 +23,7 @@ pub fn spawn_tile(
 ) {
     cmds.spawn((
         Tile,
+        StateScoped(GameState::Playing),
         SpriteBundle {
             transform: Transform::from_translation(tile_pos.extend(tile_z)),
             texture: tile_tex_atlas.texture(),
@@ -35,100 +37,100 @@ pub fn spawn_tile(
     .with_children(|parent| {
         if matches!(
             tile_lvl_obj,
-            LevelObject::WallLeft
-                | LevelObject::WallBottomLeft
-                | LevelObject::WallTopLeft
-                | LevelObject::UWall
+            LevelObject::LeftWall
+                | LevelObject::BottomLeftWall
+                | LevelObject::TopLeftWall
+                | LevelObject::UShapedWall
         ) {
             parent.spawn((
                 TransformBundle::from_transform(Transform::from_xyz(
-                    -HALF_TILE_SIZE - HALF_WALL_THICKNESS + WALL_THICKNESS,
+                    -HALF_TILE_SIZE.x - HALF_WALL_THICKNESS + WALL_THICKNESS,
                     0.,
                     0.,
                 )),
-                Collider::cuboid(HALF_WALL_THICKNESS, HALF_TILE_SIZE),
+                Collider::cuboid(HALF_WALL_THICKNESS, HALF_TILE_SIZE.y),
             ));
         }
         if matches!(
             tile_lvl_obj,
-            LevelObject::WallRight
-                | LevelObject::WallBottomRight
-                | LevelObject::WallTopRight
-                | LevelObject::UWall
+            LevelObject::RightWall
+                | LevelObject::BottomRightWall
+                | LevelObject::TopRightWall
+                | LevelObject::UShapedWall
         ) {
             parent.spawn((
                 TransformBundle::from_transform(Transform::from_xyz(
-                    HALF_TILE_SIZE + HALF_WALL_THICKNESS - WALL_THICKNESS,
+                    HALF_TILE_SIZE.x + HALF_WALL_THICKNESS - WALL_THICKNESS,
                     0.,
                     0.,
                 )),
-                Collider::cuboid(HALF_WALL_THICKNESS, HALF_TILE_SIZE),
+                Collider::cuboid(HALF_WALL_THICKNESS, HALF_TILE_SIZE.y),
             ));
         }
         if matches!(
             tile_lvl_obj,
-            LevelObject::WallTop | LevelObject::WallTopLeft | LevelObject::WallTopRight
+            LevelObject::TopWall | LevelObject::TopLeftWall | LevelObject::TopRightWall
         ) {
             parent.spawn((
                 TransformBundle::from_transform(Transform::from_xyz(
                     0.,
-                    HALF_TILE_SIZE + HALF_WALL_THICKNESS - WALL_THICKNESS,
+                    HALF_TILE_SIZE.y + HALF_WALL_THICKNESS - WALL_THICKNESS,
                     0.,
                 )),
-                Collider::cuboid(HALF_TILE_SIZE, HALF_WALL_THICKNESS),
+                Collider::cuboid(HALF_TILE_SIZE.x, HALF_WALL_THICKNESS),
             ));
         }
         if matches!(
             tile_lvl_obj,
-            LevelObject::WallBottom
-                | LevelObject::WallBottomLeft
-                | LevelObject::WallBottomRight
-                | LevelObject::UWall
+            LevelObject::BottomWall
+                | LevelObject::BottomLeftWall
+                | LevelObject::BottomRightWall
+                | LevelObject::UShapedWall
         ) {
             parent.spawn((
                 TransformBundle::from_transform(Transform::from_xyz(
                     0.,
-                    -HALF_TILE_SIZE - HALF_WALL_THICKNESS + WALL_THICKNESS,
+                    -HALF_TILE_SIZE.y - HALF_WALL_THICKNESS + WALL_THICKNESS,
                     0.,
                 )),
-                Collider::cuboid(HALF_TILE_SIZE, HALF_WALL_THICKNESS),
+                Collider::cuboid(HALF_TILE_SIZE.x, HALF_WALL_THICKNESS),
             ));
         }
-        if matches!(tile_lvl_obj, LevelObject::CornerTopLeft) {
+        if matches!(tile_lvl_obj, LevelObject::TopLeftCorner) {
             parent.spawn((
                 TransformBundle::from_transform(Transform::from_xyz(
-                    -HALF_TILE_SIZE - HALF_WALL_THICKNESS + WALL_THICKNESS,
-                    HALF_TILE_SIZE + HALF_WALL_THICKNESS - WALL_THICKNESS,
+                    -HALF_TILE_SIZE.x - HALF_WALL_THICKNESS + WALL_THICKNESS,
+                    HALF_TILE_SIZE.y + HALF_WALL_THICKNESS - WALL_THICKNESS,
                     0.,
                 )),
                 Collider::cuboid(HALF_WALL_THICKNESS, HALF_WALL_THICKNESS),
             ));
         }
-        if matches!(tile_lvl_obj, LevelObject::CornerTopRight) {
+        if matches!(tile_lvl_obj, LevelObject::TopRightCorner) {
             parent.spawn((
                 TransformBundle::from_transform(Transform::from_xyz(
-                    HALF_TILE_SIZE + HALF_WALL_THICKNESS - WALL_THICKNESS,
-                    HALF_TILE_SIZE + HALF_WALL_THICKNESS - WALL_THICKNESS,
+                    HALF_TILE_SIZE.x + HALF_WALL_THICKNESS - WALL_THICKNESS,
+                    HALF_TILE_SIZE.y + HALF_WALL_THICKNESS - WALL_THICKNESS,
                     0.,
                 )),
                 Collider::cuboid(HALF_WALL_THICKNESS, HALF_WALL_THICKNESS),
             ));
         }
-        if matches!(tile_lvl_obj, LevelObject::CornerBottomLeft) {
+        if matches!(tile_lvl_obj, LevelObject::BottomLeftCorner) {
             parent.spawn((
                 TransformBundle::from_transform(Transform::from_xyz(
-                    -HALF_TILE_SIZE - HALF_WALL_THICKNESS + WALL_THICKNESS,
-                    -HALF_TILE_SIZE - HALF_WALL_THICKNESS + WALL_THICKNESS,
+                    -HALF_TILE_SIZE.x - HALF_WALL_THICKNESS + WALL_THICKNESS,
+                    -HALF_TILE_SIZE.y - HALF_WALL_THICKNESS + WALL_THICKNESS,
                     0.,
                 )),
                 Collider::cuboid(HALF_WALL_THICKNESS, HALF_WALL_THICKNESS),
             ));
         }
-        if matches!(tile_lvl_obj, LevelObject::CornerBottomRight) {
+        if matches!(tile_lvl_obj, LevelObject::BottomRightCorner) {
             parent.spawn((
                 TransformBundle::from_transform(Transform::from_xyz(
-                    HALF_TILE_SIZE + HALF_WALL_THICKNESS - WALL_THICKNESS,
-                    -HALF_TILE_SIZE - HALF_WALL_THICKNESS + WALL_THICKNESS,
+                    HALF_TILE_SIZE.x + HALF_WALL_THICKNESS - WALL_THICKNESS,
+                    -HALF_TILE_SIZE.y - HALF_WALL_THICKNESS + WALL_THICKNESS,
                     0.,
                 )),
                 Collider::cuboid(HALF_WALL_THICKNESS, HALF_WALL_THICKNESS),

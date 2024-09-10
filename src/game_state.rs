@@ -7,9 +7,11 @@ pub enum GameState {
 }
 
 pub fn game_state_plugin(app: &mut App) {
-    app.insert_state(GameState::Setup).add_systems(
-        Update,
-        (|mut next_state: ResMut<NextState<GameState>>| next_state.set(GameState::Playing))
-            .run_if(in_state(GameState::Setup)),
-    );
+    app.insert_state(GameState::Setup)
+        .enable_state_scoped_entities::<GameState>()
+        .add_systems(
+            Update,
+            (|mut next_state: ResMut<NextState<GameState>>| next_state.set(GameState::Playing))
+                .run_if(in_state(GameState::Setup)),
+        );
 }

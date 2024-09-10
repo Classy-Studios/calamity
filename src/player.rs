@@ -26,6 +26,7 @@ pub fn spawn_player(
 ) {
     cmds.spawn((
         Player,
+        StateScoped(GameState::Playing),
         SpriteBundle {
             texture: player_tex_atlas.texture(),
             transform: Transform::from_translation(player_pos.extend(10.)),
@@ -58,7 +59,7 @@ fn player_movement(
         With<Player>,
     >,
     mouse_pos: Res<MousePosition>,
-    time: Res<Time<Fixed>>,
+    time: Res<Time>,
 ) {
     let dt = time.delta_seconds();
     let (mut player_kcc, mut player_xform, player_in, player_vel) = player_qry.single_mut();
