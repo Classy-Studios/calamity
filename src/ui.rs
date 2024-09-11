@@ -2,7 +2,7 @@ use {
     super::{
         asset_owner::FontOwner,
         level,
-        task::{self, Task, TaskTimer},
+        task::{self, Task, TaskList, TaskTimer},
         GameState,
     },
     crate::RESOLUTION,
@@ -74,10 +74,7 @@ fn spawn_hud(mut cmds: Commands, ui_font: Res<FontOwner<Ui>>) {
                             .with_children(|task| {
                                 task.spawn((
                                     TaskInfo,
-                                    TextBundle::from_section(
-                                        "",
-                                        TextStyle::default()
-                                    ),
+                                    TextBundle::from_section("", TextStyle::default()),
                                 ));
                             });
                     }
@@ -87,12 +84,19 @@ fn spawn_hud(mut cmds: Commands, ui_font: Res<FontOwner<Ui>>) {
 }
 
 fn populate_task_list(
-    task_qry: Query<(&Name, &TaskTimer), With<Task>>,
+    task_list: Res<TaskList>,
+    task_qry: Query<(&Task, &TaskTimer)>,
     mut task_info_qry: Query<&mut Text, With<TaskInfo>>,
 ) {
-    for ((task_name, task_timer), mut task_text) in task_qry.iter().zip(task_info_qry.iter_mut()) {
-        task_text.sections[0] =
-            format!("{}! {:.0} s", task_name, task_timer.remaining_secs()).into();
+    for (i, mut task_text) in task_info_qry.iter_mut().enumerate() {
+        task_text.sections[0] = task_list
+            .get(i)
+            .and_then(|&task_id| task_qry.get(task_id).ok())
+            .map(|(task, task_timer)| {
+                format!("{}! {:.0} s", task.name(), task_timer.remaining_secs())
+            })
+            .unwrap_or(String::new())
+            .into();
     }
 }
 
