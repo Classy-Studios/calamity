@@ -21,7 +21,6 @@ struct HealthBar;
 
 fn spawn_hud(
     mut cmds: Commands,
-    ui_font: Res<FontOwner<Ui>>,
     health_bar_tex_atlas: Res<TextureAtlasOwner<HealthBar>>,
 ) {
     cmds.spawn((
@@ -43,8 +42,6 @@ fn spawn_hud(
                     height: Val::Percent(25.),
                     width: Val::Percent(100.),
                     justify_content: JustifyContent::SpaceBetween,
-
-                    //align_items: AlignItems::FlexStart,
                     ..default()
                 },
                 ..default()
@@ -52,7 +49,6 @@ fn spawn_hud(
             .with_children(|hud| {
                 hud.spawn(NodeBundle {
                     style: Style {
-                        //padding: UiRect{top: Val::Percent(3.), ..default()},
                         width: Val::Percent(40.),
                         height: Val::Percent(30.),
                         justify_content: JustifyContent::SpaceEvenly,
@@ -60,7 +56,6 @@ fn spawn_hud(
 
                         ..default()
                     },
-
                     ..default()
                 })
                 .with_children(|health_bar| {
