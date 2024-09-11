@@ -1,6 +1,7 @@
 use {
     super::{
         asset_owner::FontOwner,
+        asset_owner::TextureAtlasOwner,
         level,
         task::{self, Task, TaskList, TaskTimer},
         GameState,
@@ -15,7 +16,14 @@ struct Ui;
 #[derive(Component)]
 struct TaskInfo;
 
-fn spawn_hud(mut cmds: Commands, ui_font: Res<FontOwner<Ui>>) {
+#[derive(Component)]
+struct HealthBar;
+
+fn spawn_hud(
+    mut cmds: Commands,
+    ui_font: Res<FontOwner<Ui>>,
+    health_bar_tex_atlas: Res<TextureAtlasOwner<HealthBar>>,
+) {
     cmds.spawn((
         Ui,
         StateScoped(GameState::Playing),
@@ -34,13 +42,49 @@ fn spawn_hud(mut cmds: Commands, ui_font: Res<FontOwner<Ui>>) {
                 style: Style {
                     height: Val::Percent(25.),
                     width: Val::Percent(100.),
-                    justify_content: JustifyContent::FlexEnd,
+                    justify_content: JustifyContent::SpaceBetween,
+
+                    //align_items: AlignItems::FlexStart,
                     ..default()
                 },
-                background_color: BackgroundColor(Color::Srgba(Srgba::BLUE)),
                 ..default()
             })
             .with_children(|hud| {
+                hud.spawn(NodeBundle {
+                    style: Style {
+                        //padding: UiRect{top: Val::Percent(3.), ..default()},
+                        width: Val::Percent(40.),
+                        height: Val::Percent(30.),
+                        justify_content: JustifyContent::SpaceEvenly,
+                        align_items: AlignItems::Center,
+
+                        ..default()
+                    },
+
+                    ..default()
+                })
+                .with_children(|health_bar| {
+                    for _ in 0..5 {
+                        health_bar.spawn((
+                            ImageBundle {
+                                style: Style {
+                                    width: Val::Percent(10.),
+                                    height: Val::Percent(100.),
+                                    ..default()
+                                },
+                                image: UiImage {
+                                    texture: health_bar_tex_atlas.texture(),
+                                    ..default()
+                                },
+                                ..default()
+                            },
+                            TextureAtlas {
+                                layout: health_bar_tex_atlas.layout(),
+                                index: 0,
+                            },
+                        ));
+                    }
+                });
                 hud.spawn(NodeBundle {
                     style: Style {
                         width: Val::Percent(30.),
@@ -50,11 +94,10 @@ fn spawn_hud(mut cmds: Commands, ui_font: Res<FontOwner<Ui>>) {
                         align_items: AlignItems::Center,
                         ..default()
                     },
-                    background_color: BackgroundColor(Color::Srgba(Srgba::RED)),
                     ..default()
                 })
                 .with_children(|task_list| {
-                    for i in 0..3 {
+                    for _ in 0..3 {
                         task_list
                             .spawn(NodeBundle {
                                 style: Style {
@@ -64,10 +107,9 @@ fn spawn_hud(mut cmds: Commands, ui_font: Res<FontOwner<Ui>>) {
                                     align_items: AlignItems::Center,
                                     ..default()
                                 },
-                                background_color: BackgroundColor(Color::Srgba(Srgba::rgb_u8(
-                                    i * 30,
-                                    i * 30,
-                                    i * 30,
+                                border_radius: BorderRadius::all(Val::Percent(30.)),
+                                background_color: BackgroundColor(Color::Srgba(Srgba::rgba_u8(
+                                    120, 120, 120, 150,
                                 ))),
                                 ..default()
                             })
@@ -103,9 +145,25 @@ fn populate_task_list(
 pub fn ui_plugin(app: &mut App) {
     app.add_systems(
         OnEnter(GameState::Setup),
-        |mut cmds: Commands, asset_server: Res<AssetServer>| {
-            cmds.insert_resource(FontOwner::<Ui>::new(asset_server.load("font.ttf")));
-        },
+        (
+            |mut cmds: Commands, asset_server: Res<AssetServer>| {
+                cmds.insert_resource(FontOwner::<Ui>::new(asset_server.load("font.ttf")));
+            },
+            |mut cmds: Commands,
+             asset_server: Res<AssetServer>,
+             mut tex_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>| {
+                cmds.insert_resource(TextureAtlasOwner::<HealthBar>::new(
+                    asset_server.load("health.png"),
+                    tex_atlas_layouts.add(TextureAtlasLayout::from_grid(
+                        UVec2::splat(128),
+                        1,
+                        3,
+                        None,
+                        None,
+                    )),
+                ))
+            },
+        ),
     )
     .add_systems(
         OnEnter(GameState::Playing),

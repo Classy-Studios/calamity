@@ -61,7 +61,7 @@ fn spawn_task(mut cmds: Commands, mut task_list: ResMut<TaskList>) {
         task_list.0.push_back(
             cmds.spawn((
                 Task::try_from(rand::thread_rng().gen_range(0..Task::COUNT)).unwrap(),
-                TaskTimer(Timer::from_second(60., TimerMode::Once)),
+                TaskTimer(Timer::from_seconds(60., TimerMode::Once)),
             ))
             .id(),
         );
