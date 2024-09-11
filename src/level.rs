@@ -12,7 +12,7 @@ use {
 pub const LEVEL_SIZE: Vec3 = Vec3::new(22., 27., 2.);
 
 #[repr(usize)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub enum LevelObject {
     BedsideTable,
     BigTvLeft,
@@ -153,7 +153,7 @@ impl LevelObject {
     }
 }
 
-const LEVEL_LAYOUT: [[[LevelObject; LEVEL_SIZE.x as usize]; LEVEL_SIZE.y as usize];
+pub const LEVEL_LAYOUT: [[[LevelObject; LEVEL_SIZE.x as usize]; LEVEL_SIZE.y as usize];
     LEVEL_SIZE.z as usize] = [
     [
         [LevelObject::Grass; LEVEL_SIZE.x as usize],
@@ -1089,6 +1089,15 @@ const LEVEL_LAYOUT: [[[LevelObject; LEVEL_SIZE.x as usize]; LEVEL_SIZE.y as usiz
     ],
 ];
 
+pub fn idx_to_world_pos(x: usize, y: usize, z: usize) -> Vec3 {
+    (Transform::from_translation(
+        (-Vec2::new(LEVEL_SIZE.x - 1., LEVEL_SIZE.y - 1.) * TILE_SIZE / 2.).extend(z as f32),
+    ) * Transform::from_translation(
+        (Vec2::new(x as f32, LEVEL_SIZE.y - y as f32 - 1.) * TILE_SIZE).extend(z as f32),
+    ))
+    .translation
+}
+
 pub fn spawn_level_objects(
     mut cmds: Commands,
     tile_tex_atlas: Res<TextureAtlasOwner<Tile>>,
@@ -1098,21 +1107,15 @@ pub fn spawn_level_objects(
         for y in 0..LEVEL_SIZE.y as usize {
             for x in 0..LEVEL_SIZE.x as usize {
                 let lvl_obj = LEVEL_LAYOUT[z][y][x];
-                let pos = (Transform::from_translation(
-                    (-Vec2::new(LEVEL_SIZE.x - 1., LEVEL_SIZE.y - 1.) * TILE_SIZE / 2.)
-                        .extend(default()),
-                ) * Transform::from_translation(
-                    (Vec2::new(x as f32, LEVEL_SIZE.y - y as f32 - 1.) * TILE_SIZE)
-                        .extend(default()),
-                ))
-                .translation
-                .truncate();
+                let pos = idx_to_world_pos(x, y, z);
                 match lvl_obj {
                     LevelObject::Nothing => (),
-                    LevelObject::Player => player::spawn_player(&mut cmds, pos, &player_tex_atlas),
+                    LevelObject::Player => {
+                        player::spawn_player(&mut cmds, pos.truncate(), &player_tex_atlas)
+                    }
                     _ => tile::spawn_tile(
                         &mut cmds,
-                        pos,
+                        pos.truncate(),
                         z as f32,
                         &tile_tex_atlas,
                         lvl_obj.id(),

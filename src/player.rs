@@ -1,7 +1,10 @@
 use {
     super::{
-        asset_owner::TextureAtlasOwner, game_state::GameState, mouse_position::MousePosition,
-        tile::TILE_SIZE,
+        asset_owner::TextureAtlasOwner,
+        game_state::GameState,
+        mouse_position::MousePosition,
+        task::*,
+        tile::{AVG_TILE_DIMENSION, TILE_SIZE},
     },
     bevy::prelude::*,
     bevy_rapier2d::prelude::*,
@@ -9,7 +12,9 @@ use {
 };
 
 #[derive(Component)]
-pub struct Player;
+pub struct Player {
+    doing_task: bool,
+}
 
 #[derive(Actionlike, PartialEq, Eq, Hash, Clone, Reflect, Debug)]
 pub enum PlayerAction {
@@ -17,6 +22,8 @@ pub enum PlayerAction {
     MoveRight,
     MoveUp,
     MoveDown,
+    EnterTask,
+    ExitTask,
 }
 
 #[derive(Resource)]
@@ -36,7 +43,7 @@ pub fn spawn_player(
     player_tex_atlas: &Res<TextureAtlasOwner<Player>>,
 ) {
     cmds.spawn((
-        Player,
+        Player { doing_task: false },
         StateScoped(GameState::Playing),
         SpriteBundle {
             texture: player_tex_atlas.texture(),
@@ -49,31 +56,69 @@ pub fn spawn_player(
         },
         KinematicCharacterController::default(),
         Collider::ball(15.),
-        InputManagerBundle::with_map(InputMap::new([
-            (PlayerAction::MoveLeft, KeyCode::KeyA),
-            (PlayerAction::MoveRight, KeyCode::KeyD),
-            (PlayerAction::MoveUp, KeyCode::KeyW),
-            (PlayerAction::MoveDown, KeyCode::KeyS),
-        ])),
+        InputManagerBundle::with_map(
+            InputMap::new([
+                (PlayerAction::MoveLeft, KeyCode::KeyA),
+                (PlayerAction::MoveRight, KeyCode::KeyD),
+                (PlayerAction::MoveUp, KeyCode::KeyW),
+                (PlayerAction::MoveDown, KeyCode::KeyS),
+                (PlayerAction::ExitTask, KeyCode::Escape),
+            ])
+            .with(PlayerAction::EnterTask, MouseButton::Left),
+        ),
         Velocity::linear(TILE_SIZE * 2.),
     ));
 }
 
+//If player is within proximity to a task, when left mouse is clicked enter that task
+fn player_task_input(
+    mut player_qry: Query<(&mut Player, &Transform, &ActionState<PlayerAction>)>,
+    task_qry: Query<&Transform, With<Task>>,
+) {
+    let (mut player, player_xform, player_in) = player_qry.single_mut();
+
+    if player.doing_task {
+        if player_in.just_pressed(&PlayerAction::ExitTask) {
+            player.doing_task = false;
+        }
+        return;
+    }
+    let player_pos = player_xform.translation.truncate();
+
+    let Some(closest_task_pos) = task_qry
+        .iter()
+        .map(|task_xform| task_xform.translation.truncate())
+        .min_by(|task_a_pos, task_b_pos| {
+            (task_a_pos.distance(player_pos)).total_cmp(&task_b_pos.distance(player_pos))
+        })
+    else {
+        return;
+    };
+
+    if player_in.just_pressed(&PlayerAction::EnterTask)
+        && closest_task_pos.distance(player_pos) <= AVG_TILE_DIMENSION
+    {
+        player.doing_task = true;
+        println!("doing task!!!");
+    }
+}
+
 fn player_movement(
-    mut player_qry: Query<
-        (
-            &mut KinematicCharacterController,
-            &mut Transform,
-            &ActionState<PlayerAction>,
-            &Velocity,
-        ),
-        With<Player>,
-    >,
+    mut player_qry: Query<(
+        &Player,
+        &mut KinematicCharacterController,
+        &mut Transform,
+        &ActionState<PlayerAction>,
+        &Velocity,
+    )>,
     mouse_pos: Res<MousePosition>,
     time: Res<Time>,
 ) {
     let dt = time.delta_seconds();
-    let (mut player_kcc, mut player_xform, player_in, player_vel) = player_qry.single_mut();
+    let (player, mut player_kcc, mut player_xform, player_in, player_vel) = player_qry.single_mut();
+    if player.doing_task {
+        return;
+    };
 
     let theta = -(mouse_pos.as_vec() - player_xform.translation.truncate()).angle_between(Vec2::X);
     player_xform.rotation = Quat::from_rotation_z(theta);
@@ -116,6 +161,10 @@ pub fn player_plugin(app: &mut App) {
     .add_systems(OnEnter(GameState::Playing), |mut cmds: Commands| {
         cmds.insert_resource(PlayerHealthBar::new())
     })
+    .add_systems(
+        Update,
+        player_task_input.run_if(in_state(GameState::Playing)),
+    )
     .add_systems(
         FixedUpdate,
         player_movement.run_if(in_state(GameState::Playing)),
