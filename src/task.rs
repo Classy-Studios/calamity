@@ -1,9 +1,7 @@
 use {
-    super::GameState, bevy::prelude::*, rand::Rng, std::collections::VecDeque, strum::EnumCount,
+    super::{GameState, player::PlayerHealthBar}, bevy::prelude::*, rand::Rng, std::collections::VecDeque, strum::EnumCount,
     strum_macros::EnumCount as EnumCountMacro,
 };
-
-pub const MAX_TASK_COUNT: usize = 3;
 
 #[derive(Component, EnumCountMacro)]
 pub enum Task {
@@ -42,6 +40,12 @@ impl TryFrom<usize> for Task {
 pub struct TaskList(VecDeque<Entity>);
 
 impl TaskList {
+    pub const MAX_SIZE: usize = 3;
+
+    fn new() -> Self {
+        Self(VecDeque::with_capacity(Self::MAX_SIZE))
+    }
+    
     pub fn get(&self, idx: usize) -> Option<&Entity> {
         self.0.get(idx)
     }
@@ -57,11 +61,11 @@ impl TaskTimer {
 }
 
 fn spawn_task(mut cmds: Commands, mut task_list: ResMut<TaskList>) {
-    if task_list.0.len() != MAX_TASK_COUNT {
+    if task_list.0.len() != TaskList::MAX_SIZE {
         task_list.0.push_back(
             cmds.spawn((
                 Task::try_from(rand::thread_rng().gen_range(0..Task::COUNT)).unwrap(),
-                TaskTimer(Timer::from_seconds(60., TimerMode::Once)),
+                TaskTimer(Timer::from_seconds(10., TimerMode::Once)),
             ))
             .id(),
         );
@@ -72,6 +76,7 @@ pub fn update_task_timers(
     mut cmds: Commands,
     mut task_timer_qry: Query<(Entity, &mut TaskTimer), With<Task>>,
     mut task_list: ResMut<TaskList>,
+    mut player_hp_bar: ResMut<PlayerHealthBar>,
     time: Res<Time>,
 ) {
     let dt = time.delta();
@@ -80,6 +85,7 @@ pub fn update_task_timers(
         if task_timer.0.just_finished() {
             cmds.entity(task_id).despawn_recursive();
             task_list.0.pop_front();
+            player_hp_bar.0.pop();
         }
     }
 }
@@ -93,7 +99,7 @@ pub fn task_plugin(app: &mut App) {
         OnEnter(GameState::Playing),
         (
             |mut cmds: Commands| {
-                cmds.insert_resource(TaskList(VecDeque::with_capacity(MAX_TASK_COUNT)));
+                cmds.insert_resource(TaskList::new());
             },
             spawn_task,
         )

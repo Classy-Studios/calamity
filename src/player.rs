@@ -19,6 +19,17 @@ pub enum PlayerAction {
     MoveDown,
 }
 
+#[derive(Resource)]
+pub struct PlayerHealthBar(pub Vec<u8>);
+
+impl PlayerHealthBar {
+    pub const MAX_SIZE: usize = 3;
+
+    fn new() -> Self {
+        Self(vec![2; Self::MAX_SIZE])
+    }
+}
+
 pub fn spawn_player(
     cmds: &mut Commands,
     player_pos: Vec2,
@@ -102,6 +113,9 @@ pub fn player_plugin(app: &mut App) {
             ))
         },
     )
+    .add_systems(OnEnter(GameState::Playing), |mut cmds: Commands| {
+        cmds.insert_resource(PlayerHealthBar::new())
+    })
     .add_systems(
         FixedUpdate,
         player_movement.run_if(in_state(GameState::Playing)),

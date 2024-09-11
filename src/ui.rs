@@ -3,6 +3,7 @@ use {
         asset_owner::FontOwner,
         asset_owner::TextureAtlasOwner,
         level,
+        player::PlayerHealthBar,
         task::{self, Task, TaskList, TaskTimer},
         GameState,
     },
@@ -14,15 +15,12 @@ use {
 struct Ui;
 
 #[derive(Component)]
-struct TaskInfo;
+struct TaskUi;
 
 #[derive(Component)]
-struct HealthBar;
+struct HealthUi;
 
-fn spawn_hud(
-    mut cmds: Commands,
-    health_bar_tex_atlas: Res<TextureAtlasOwner<HealthBar>>,
-) {
+fn spawn_hud(mut cmds: Commands, health_bar_tex_atlas: Res<TextureAtlasOwner<HealthUi>>) {
     cmds.spawn((
         Ui,
         StateScoped(GameState::Playing),
@@ -59,8 +57,9 @@ fn spawn_hud(
                     ..default()
                 })
                 .with_children(|health_bar| {
-                    for _ in 0..5 {
+                    for _ in 0..PlayerHealthBar::MAX_SIZE {
                         health_bar.spawn((
+                            HealthUi,
                             ImageBundle {
                                 style: Style {
                                     width: Val::Percent(10.),
@@ -92,7 +91,7 @@ fn spawn_hud(
                     ..default()
                 })
                 .with_children(|task_list| {
-                    for _ in 0..3 {
+                    for _ in 0..TaskList::MAX_SIZE {
                         task_list
                             .spawn(NodeBundle {
                                 style: Style {
@@ -110,7 +109,7 @@ fn spawn_hud(
                             })
                             .with_children(|task| {
                                 task.spawn((
-                                    TaskInfo,
+                                    TaskUi,
                                     TextBundle::from_section("", TextStyle::default()),
                                 ));
                             });
@@ -120,13 +119,15 @@ fn spawn_hud(
     });
 }
 
-fn populate_task_list(
+fn update_hud(
     task_list: Res<TaskList>,
     task_qry: Query<(&Task, &TaskTimer)>,
-    mut task_info_qry: Query<&mut Text, With<TaskInfo>>,
+    mut task_ui_qry: Query<&mut Text, With<TaskUi>>,
+    player_hp_bar: Res<PlayerHealthBar>,
+    mut hp_ui_qry: Query<&mut TextureAtlas, With<HealthUi>>,
 ) {
-    for (i, mut task_text) in task_info_qry.iter_mut().enumerate() {
-        task_text.sections[0] = task_list
+    for (i, mut task_ui) in task_ui_qry.iter_mut().enumerate() {
+        task_ui.sections[0] = task_list
             .get(i)
             .and_then(|&task_id| task_qry.get(task_id).ok())
             .map(|(task, task_timer)| {
@@ -134,6 +135,13 @@ fn populate_task_list(
             })
             .unwrap_or(String::new())
             .into();
+    }
+    for (i, mut hp_ui) in hp_ui_qry.iter_mut().enumerate() {
+        hp_ui.index = match player_hp_bar.0.get(i) {
+            Some(2) => 0,
+            Some(1) => 1,
+            _ => 2,
+        }
     }
 }
 
@@ -147,7 +155,7 @@ pub fn ui_plugin(app: &mut App) {
             |mut cmds: Commands,
              asset_server: Res<AssetServer>,
              mut tex_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>| {
-                cmds.insert_resource(TextureAtlasOwner::<HealthBar>::new(
+                cmds.insert_resource(TextureAtlasOwner::<HealthUi>::new(
                     asset_server.load("health.png"),
                     tex_atlas_layouts.add(TextureAtlasLayout::from_grid(
                         UVec2::splat(128),
@@ -166,7 +174,7 @@ pub fn ui_plugin(app: &mut App) {
     )
     .add_systems(
         Update,
-        populate_task_list
+        update_hud
             .after(task::update_task_timers)
             .run_if(in_state(GameState::Playing)),
     );
