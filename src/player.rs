@@ -3,7 +3,7 @@ use {
         asset_owner::TextureAtlasOwner,
         game_state::GameState,
         mouse_position::MousePosition,
-        task::*,
+        task::Task,
         tile::{AVG_TILE_DIMENSION, TILE_SIZE},
     },
     bevy::prelude::*,
@@ -99,7 +99,6 @@ fn player_task_input(
         && closest_task_pos.distance(player_pos) <= AVG_TILE_DIMENSION
     {
         player.doing_task = true;
-        println!("doing task!!!");
     }
 }
 
@@ -151,7 +150,7 @@ pub fn player_plugin(app: &mut App) {
                 tex_atlas_layouts.add(TextureAtlasLayout::from_grid(
                     UVec2::splat(64),
                     2,
-                    1,
+                    2,
                     None,
                     None,
                 )),

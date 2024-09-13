@@ -7,6 +7,8 @@ mod primary_camera;
 mod task;
 mod tile;
 mod ui;
+mod zombie;
+mod combat;
 
 use {
     bevy::prelude::*, bevy_rapier2d::prelude::*, game_state::GameState,
@@ -38,6 +40,7 @@ fn main() {
             ui::ui_plugin,
             task::task_plugin,
             player::player_plugin,
+            zombie::zombie_plugin,
             tile::tile_plugin,
         ))
         .run();
